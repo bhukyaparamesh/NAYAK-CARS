@@ -253,17 +253,26 @@ function Admin() {
 
           <label>Fuel Type</label>
           <select
-            name="fuel"
-            value={car.fuel}
-            onChange={handleChange}
-            required
-          >
-            <option value="">Select fuel</option>
-            <option value="Petrol">Petrol</option>
-            <option value="Diesel">Diesel</option>
-            <option value="CNG">CNG</option>
-            <option value="Electric">Electric</option>
-          </select>
+  name="fuel"
+  value={car.fuel}
+  onChange={handleChange}
+  required
+>
+  <option value="">Select fuel</option>
+
+  <option value="Petrol">Petrol</option>
+  <option value="Diesel">Diesel</option>
+
+  <option value="Petrol + CNG">Petrol + CNG</option>
+  <option value="Petrol + LPG">Petrol + LPG</option>
+
+  <option value="Diesel + CNG">Diesel + CNG</option>
+  <option value="Diesel + LPG">Diesel + LPG</option>
+
+  <option value="CNG">CNG</option>
+  <option value="LPG">LPG</option>
+  <option value="Electric">Electric</option>
+</select>
 
           <label>Transmission</label>
           <select

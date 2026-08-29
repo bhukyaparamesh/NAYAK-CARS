@@ -29,28 +29,28 @@ function CarGallery({ images, carName }) {
     <>
       <div className="car-gallery">
         <div
-  className="main-image-wrapper"
-  onClick={() => setFullScreen(true)}
-  onTouchStart={(e) => {
-    e.currentTarget.touchStartX = e.touches[0].clientX;
-  }}
-  onTouchEnd={(e) => {
-    const touchEndX = e.changedTouches[0].clientX;
-    const touchStartX = e.currentTarget.touchStartX;
+          className="main-image-wrapper"
+          onClick={() => setFullScreen(true)}
+          onTouchStart={(e) => {
+            e.currentTarget.touchStartX = e.touches[0].clientX;
+          }}
+          onTouchEnd={(e) => {
+            const touchEndX = e.changedTouches[0].clientX;
+            const touchStartX = e.currentTarget.touchStartX;
 
-    if (touchStartX === undefined) return;
+            if (touchStartX === undefined) return;
 
-    const swipeDistance = touchEndX - touchStartX;
+            const swipeDistance = touchEndX - touchStartX;
 
-    if (Math.abs(swipeDistance) > 50) {
-      if (swipeDistance < 0) {
-        nextImage();
-      } else {
-        previousImage();
-      }
-    }
-  }}
->
+            if (Math.abs(swipeDistance) > 50) {
+              if (swipeDistance < 0) {
+                nextImage();
+              } else {
+                previousImage();
+              }
+            }
+          }}
+        >
           <img
             src={images[selectedImage]}
             alt={carName}
@@ -81,7 +81,6 @@ function CarGallery({ images, carName }) {
 
       {fullScreen && (
         <div className="fullscreen-gallery-overlay">
-
           <button
             className="close-gallery"
             onClick={() => setFullScreen(false)}
@@ -116,7 +115,6 @@ function CarGallery({ images, carName }) {
           <div className="image-counter">
             {selectedImage + 1} / {images.length}
           </div>
-
         </div>
       )}
     </>
@@ -125,20 +123,31 @@ function CarGallery({ images, carName }) {
 
 function App() {
   const [cars, setCars] = useState([]);
-  const [wishlist, setWishlist] = useState(() => {
-  const saved = localStorage.getItem("nayakWishlist");
-  return saved ? JSON.parse(saved) : [];
-});
-const toggleWishlist = (carId) => {
-  setWishlist((prev) => {
-    const updated = prev.includes(carId)
-      ? prev.filter((id) => id !== carId)
-      : [...prev, carId];
 
-    localStorage.setItem("nayakWishlist", JSON.stringify(updated));
-    return updated;
+  const [wishlist, setWishlist] = useState(() => {
+    const saved = localStorage.getItem("nayakWishlist");
+    return saved ? JSON.parse(saved) : [];
   });
-};
+
+  // SEARCH + FILTER STATES
+  const [search, setSearch] = useState("");
+  const [fuelFilter, setFuelFilter] = useState("");
+  const [transmissionFilter, setTransmissionFilter] = useState("");
+
+  const toggleWishlist = (carId) => {
+    setWishlist((prev) => {
+      const updated = prev.includes(carId)
+        ? prev.filter((id) => id !== carId)
+        : [...prev, carId];
+
+      localStorage.setItem(
+        "nayakWishlist",
+        JSON.stringify(updated)
+      );
+
+      return updated;
+    });
+  };
 
   const isAdmin = window.location.pathname === "/admin";
 
@@ -162,15 +171,41 @@ const toggleWishlist = (carId) => {
     getCars();
   }, []);
 
+  // FILTER CARS
+  const filteredCars = cars.filter((car) => {
+    const searchText = search.toLowerCase().trim();
+
+    const matchesSearch =
+      !searchText ||
+      `${car.name || ""} ${car.year || ""} ${
+        car.fuel || ""
+      } ${car.transmission || ""} ${car.reading || ""}`
+        .toLowerCase()
+        .includes(searchText);
+
+    const matchesFuel =
+      !fuelFilter || car.fuel === fuelFilter;
+
+    const matchesTransmission =
+      !transmissionFilter ||
+      car.transmission === transmissionFilter;
+
+    return (
+      matchesSearch &&
+      matchesFuel &&
+      matchesTransmission
+    );
+  });
+
   if (isAdmin) {
     return <Admin />;
   }
 
   return (
     <div className="app">
+      {/* HEADER */}
 
       <header className="header">
-
         <div className="top-blessing">
           Jai Sevalal & Jai Tulja Bhavani
         </div>
@@ -181,20 +216,22 @@ const toggleWishlist = (carId) => {
 
         <nav>
           <a href="#home">Home</a>
-          <a href="#cars">Cars</a>
-          <a href="#wishlist">
-  Wishlist ❤️ ({wishlist.length})
-</a>
-        </nav>
 
+          <a href="#cars">
+            Cars
+          </a>
+
+          <a href="#wishlist">
+            Wishlist ❤️ ({wishlist.length})
+          </a>
+        </nav>
       </header>
 
       <main>
+        {/* HERO */}
 
         <section className="hero" id="home">
-
           <div className="hero-content">
-
             <p className="small-title">
               WELCOME TO
             </p>
@@ -211,79 +248,127 @@ const toggleWishlist = (carId) => {
               onClick={() =>
                 document
                   .getElementById("cars")
-                  .scrollIntoView()
+                  .scrollIntoView({
+                    behavior: "smooth",
+                  })
               }
             >
               VIEW CARS
             </button>
-
           </div>
-
         </section>
 
-        <section className="cars-section" id="cars">
+        {/* AVAILABLE CARS */}
+
+        <section
+          className="cars-section"
+          id="cars"
+        >
+          {/* SEARCH + FILTERS */}
 
           <div className="car-tools">
-
             <input
               type="text"
-              placeholder="Search cars..."
+              placeholder="Search cars, year, fuel..."
+              value={search}
+              onChange={(e) =>
+                setSearch(e.target.value)
+              }
             />
 
-            <select defaultValue="">
-  <option value="">
-    All Cars
-  </option>
+            {/* FUEL */}
 
-  <option value="petrol">
-    Petrol
-  </option>
+            <select
+              value={fuelFilter}
+              onChange={(e) =>
+                setFuelFilter(e.target.value)
+              }
+            >
+              <option value="">
+                All Fuel Types
+              </option>
 
-  <option value="diesel">
-    Diesel
-  </option>
+              <option value="Petrol">
+                Petrol
+              </option>
 
-  <option value="petrol-cng">
-    Petrol + CNG
-  </option>
+              <option value="Diesel">
+                Diesel
+              </option>
 
-  <option value="petrol-lpg">
-    Petrol + LPG
-  </option>
+              <option value="Petrol + CNG">
+                Petrol + CNG
+              </option>
 
-  <option value="diesel-cng">
-    Diesel + CNG
-  </option>
+              <option value="Petrol + LPG">
+                Petrol + LPG
+              </option>
 
-  <option value="diesel-lpg">
-    Diesel + LPG
-  </option>
+              <option value="Diesel + CNG">
+                Diesel + CNG
+              </option>
 
-  <option value="cng">
-    CNG
-  </option>
+              <option value="Diesel + LPG">
+                Diesel + LPG
+              </option>
 
-  <option value="lpg">
-    LPG
-  </option>
+              <option value="CNG">
+                CNG
+              </option>
 
-  <option value="electric">
-    Electric
-  </option>
+              <option value="LPG">
+                LPG
+              </option>
 
-  <option value="automatic">
-    Automatic
-  </option>
+              <option value="Electric">
+                Electric
+              </option>
+            </select>
 
-  <option value="manual">
-    Manual
-  </option>
-</select>
+            {/* TRANSMISSION */}
 
+            <select
+              value={transmissionFilter}
+              onChange={(e) =>
+                setTransmissionFilter(
+                  e.target.value
+                )
+              }
+            >
+              <option value="">
+                All Transmissions
+              </option>
+
+              <option value="Manual">
+                Manual
+              </option>
+
+              <option value="Automatic">
+                Automatic
+              </option>
+            </select>
+
+            {/* CLEAR FILTERS */}
+
+            {(search ||
+              fuelFilter ||
+              transmissionFilter) && (
+              <button
+                className="clear-filters"
+                onClick={() => {
+                  setSearch("");
+                  setFuelFilter("");
+                  setTransmissionFilter("");
+                }}
+              >
+                CLEAR
+              </button>
+            )}
           </div>
 
-          <div className="section-heading">
+          {/* SECTION TITLE */}
 
+          <div className="section-heading">
             <p>
               OUR COLLECTION
             </p>
@@ -292,63 +377,70 @@ const toggleWishlist = (carId) => {
               AVAILABLE CARS
             </h2>
 
+            {(search ||
+              fuelFilter ||
+              transmissionFilter) && (
+              <span>
+                Showing {filteredCars.length} of{" "}
+                {cars.length} cars
+              </span>
+            )}
           </div>
 
+          {/* CARS */}
+
           <div className="cars-grid">
-
-            {cars.length === 0 ? (
-
+            {filteredCars.length === 0 ? (
               <div className="empty-message">
-
                 <h3>
-                  No cars available
+                  No cars found
                 </h3>
 
                 <p>
-                  Please check back soon.
+                  Try changing your search or filters.
                 </p>
-
               </div>
-
             ) : (
-
-              cars.map((car) => (
-
+              filteredCars.map((car) => (
                 <div
-  className="car-card"
-  key={car.id}
->
-  <button
-    className="wishlist-button"
-    onClick={() => toggleWishlist(car.id)}
-  >
-    {wishlist.includes(car.id) ? "❤️" : "♡"}
-  </button>
+                  className="car-card"
+                  key={car.id}
+                >
+                  {/* WISHLIST */}
+
+                  <button
+                    className="wishlist-button"
+                    onClick={() =>
+                      toggleWishlist(car.id)
+                    }
+                  >
+                    {wishlist.includes(car.id)
+                      ? "❤️"
+                      : "♡"}
+                  </button>
+
+                  {/* IMAGE */}
 
                   {car.images &&
                   car.images.length > 0 ? (
-
                     <CarGallery
                       images={car.images}
                       carName={car.name}
                     />
-
                   ) : (
-
                     <div className="car-image-placeholder">
                       🚗
                     </div>
-
                   )}
 
-                  <div className="car-info">
+                  {/* CAR INFORMATION */}
 
+                  <div className="car-info">
                     <h3>
                       {car.name}
                     </h3>
 
                     <div className="car-details">
-
                       <span>
                         {car.year}
                       </span>
@@ -360,7 +452,6 @@ const toggleWishlist = (carId) => {
                       <span>
                         {car.transmission}
                       </span>
-
                     </div>
 
                     <p className="car-reading">
@@ -370,80 +461,104 @@ const toggleWishlist = (carId) => {
                     <h4>
                       {car.price}
                     </h4>
-
                   </div>
-
                 </div>
-
               ))
-
             )}
-
           </div>
-
         </section>
-        <section className="wishlist-section" id="wishlist">
-  <div className="section-heading">
-    <p>YOUR SAVED CARS</p>
-    <h2>WISHLIST ❤️</h2>
-  </div>
 
-  {wishlist.length === 0 ? (
-    <div className="empty-message">
-      <h3>No cars in your wishlist</h3>
-      <p>Tap the ♡ button on a car to save it here.</p>
-    </div>
-  ) : (
-    <div className="cars-grid">
-  {cars
-    .filter((car) => wishlist.includes(car.id))
-    .map((car) => (
-      <div className="car-card" key={car.id}>
-        
-        {car.images && car.images.length > 0 ? (
-          <CarGallery
-            images={car.images}
-            carName={car.name}
-          />
-        ) : (
-          <div className="car-image-placeholder">
-            🚗
-          </div>
-        )}
+        {/* WISHLIST */}
 
-        <div className="car-info">
-          <h3>{car.name}</h3>
+        <section
+          className="wishlist-section"
+          id="wishlist"
+        >
+          <div className="section-heading">
+            <p>
+              YOUR SAVED CARS
+            </p>
 
-          <div className="car-details">
-            <span>{car.year}</span>
-            <span>{car.fuel}</span>
-            <span>{car.transmission}</span>
+            <h2>
+              WISHLIST ❤️
+            </h2>
           </div>
 
-          <p className="car-reading">
-            {car.reading}
-          </p>
+          {wishlist.length === 0 ? (
+            <div className="empty-message">
+              <h3>
+                No cars in your wishlist
+              </h3>
 
-          <h4>
-            {car.price}
-          </h4>
+              <p>
+                Tap the ♡ button on a car to save it here.
+              </p>
+            </div>
+          ) : (
+            <div className="cars-grid">
+              {cars
+                .filter((car) =>
+                  wishlist.includes(car.id)
+                )
+                .map((car) => (
+                  <div
+                    className="car-card"
+                    key={car.id}
+                  >
+                    {car.images &&
+                    car.images.length > 0 ? (
+                      <CarGallery
+                        images={car.images}
+                        carName={car.name}
+                      />
+                    ) : (
+                      <div className="car-image-placeholder">
+                        🚗
+                      </div>
+                    )}
 
-          <button
-            className="wishlist-button"
-            onClick={() => toggleWishlist(car.id)}
-          >
-            ❤️ Remove from Wishlist
-          </button>
-        </div>
+                    <div className="car-info">
+                      <h3>
+                        {car.name}
+                      </h3>
 
-      </div>
-    ))}
-</div>
-  )}
-</section>
+                      <div className="car-details">
+                        <span>
+                          {car.year}
+                        </span>
 
+                        <span>
+                          {car.fuel}
+                        </span>
+
+                        <span>
+                          {car.transmission}
+                        </span>
+                      </div>
+
+                      <p className="car-reading">
+                        {car.reading}
+                      </p>
+
+                      <h4>
+                        {car.price}
+                      </h4>
+
+                      <button
+                        className="wishlist-button"
+                        onClick={() =>
+                          toggleWishlist(car.id)
+                        }
+                      >
+                        ❤️ Remove from Wishlist
+                      </button>
+                    </div>
+                  </div>
+                ))}
+            </div>
+          )}
+        </section>
       </main>
-
     </div>
   );
 }
