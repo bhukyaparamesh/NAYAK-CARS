@@ -231,26 +231,54 @@ const toggleWishlist = (carId) => {
             />
 
             <select defaultValue="">
-              <option value="">
-                All Cars
-              </option>
+  <option value="">
+    All Cars
+  </option>
 
-              <option value="petrol">
-                Petrol
-              </option>
+  <option value="petrol">
+    Petrol
+  </option>
 
-              <option value="diesel">
-                Diesel
-              </option>
+  <option value="diesel">
+    Diesel
+  </option>
 
-              <option value="automatic">
-                Automatic
-              </option>
+  <option value="petrol-cng">
+    Petrol + CNG
+  </option>
 
-              <option value="manual">
-                Manual
-              </option>
-            </select>
+  <option value="petrol-lpg">
+    Petrol + LPG
+  </option>
+
+  <option value="diesel-cng">
+    Diesel + CNG
+  </option>
+
+  <option value="diesel-lpg">
+    Diesel + LPG
+  </option>
+
+  <option value="cng">
+    CNG
+  </option>
+
+  <option value="lpg">
+    LPG
+  </option>
+
+  <option value="electric">
+    Electric
+  </option>
+
+  <option value="automatic">
+    Automatic
+  </option>
+
+  <option value="manual">
+    Manual
+  </option>
+</select>
 
           </div>
 
