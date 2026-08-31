@@ -1,8 +1,74 @@
 import { useEffect, useState } from "react";
 import { supabase } from "../supabase";
 
+function AdminLogin() {
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  const handleLogin = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+
+    try {
+      const { error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+
+      if (error) {
+        throw error;
+      }
+    } catch (error) {
+      console.error("Login error:", error);
+      alert("Login failed: " + error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="admin-page">
+      <div className="admin-container">
+        <h1>NAYAK CARS</h1>
+        <h2>Admin Login</h2>
+
+        <form onSubmit={handleLogin}>
+          <label>Email</label>
+
+          <input
+            type="email"
+            placeholder="Admin email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            required
+          />
+
+          <label>Password</label>
+
+          <input
+            type="password"
+            placeholder="Admin password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            required
+          />
+
+          <button type="submit" disabled={loading}>
+            {loading ? "LOGGING IN..." : "LOGIN"}
+          </button>
+        </form>
+      </div>
+    </div>
+  );
+}
+
 function Admin() {
-  // Add new car
+  const [session, setSession] = useState(null);
+  const [checkingAuth, setCheckingAuth] = useState(true);
+
+  const [editingCar, setEditingCar] = useState(null);
+
   const [car, setCar] = useState({
     name: "",
     year: "",
@@ -15,16 +81,43 @@ function Admin() {
   const [images, setImages] = useState([]);
   const [uploading, setUploading] = useState(false);
 
-  // Existing cars
   const [cars, setCars] = useState([]);
   const [loadingCars, setLoadingCars] = useState(true);
 
-  // Edit car
-  const [editingCar, setEditingCar] = useState(null);
+  // =========================
+  // AUTHENTICATION
+  // =========================
 
-  // -----------------------------
-  // FETCH ALL CARS
-  // -----------------------------
+  useEffect(() => {
+    const checkSession = async () => {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+
+      setSession(session);
+      setCheckingAuth(false);
+    };
+
+    checkSession();
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange(
+      (_event, session) => {
+        setSession(session);
+        setCheckingAuth(false);
+      }
+    );
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, []);
+
+  // =========================
+  // FETCH CARS
+  // =========================
+
   const fetchCars = async () => {
     setLoadingCars(true);
 
@@ -34,7 +127,9 @@ function Admin() {
         .select("*")
         .order("id", { ascending: false });
 
-      if (error) throw error;
+      if (error) {
+        throw error;
+      }
 
       setCars(data || []);
     } catch (error) {
@@ -45,14 +140,16 @@ function Admin() {
     }
   };
 
-  // Load cars when admin page opens
   useEffect(() => {
-    fetchCars();
-  }, []);
+    if (session) {
+      fetchCars();
+    }
+  }, [session]);
 
-  // -----------------------------
-  // ADD CAR FORM CHANGE
-  // -----------------------------
+  // =========================
+  // FORM
+  // =========================
+
   const handleChange = (e) => {
     setCar({
       ...car,
@@ -60,18 +157,32 @@ function Admin() {
     });
   };
 
-  // -----------------------------
-  // SELECT IMAGES
-  // -----------------------------
+  // =========================
+  // IMAGES
+  // =========================
+
   const handleImages = (e) => {
     setImages(Array.from(e.target.files));
   };
 
-  // -----------------------------
-  // ADD NEW CAR
-  // -----------------------------
+  // =========================
+  // ADD CAR
+  // =========================
+
   const handleSubmit = async (e) => {
     e.preventDefault();
+    const {
+  data: { user },
+  error: userError,
+} = await supabase.auth.getUser();
+
+console.log("CURRENT USER:", user);
+console.log("USER ERROR:", userError);
+
+if (!user) {
+  alert("No authenticated user found. Please log in again.");
+  return;
+}
 
     if (images.length === 0) {
       alert("Please select at least one car photo.");
@@ -83,45 +194,46 @@ function Admin() {
     try {
       const imageUrls = [];
 
-      // Upload every selected image
       for (const image of images) {
-        const fileName = `${Date.now()}-${Math.random()
-          .toString(36)
-          .substring(2)}-${image.name}`;
+        const fileName = `${Date.now()}-${image.name}`;
 
-        const { error: uploadError } = await supabase.storage
-          .from("car-images")
-          .upload(fileName, image);
+        const { error: uploadError } =
+          await supabase.storage
+            .from("car-images")
+            .upload(fileName, image);
 
-        if (uploadError) throw uploadError;
+        if (uploadError) {
+          throw uploadError;
+        }
 
-        // Get public URL
-        const { data: publicUrlData } = supabase.storage
-          .from("car-images")
-          .getPublicUrl(fileName);
+        const { data: publicUrlData } =
+          supabase.storage
+            .from("car-images")
+            .getPublicUrl(fileName);
 
         imageUrls.push(publicUrlData.publicUrl);
       }
 
-      // Save car to database
-      const { error: insertError } = await supabase
-        .from("cars")
-        .insert({
-          name: car.name,
-          year: Number(car.year),
-          fuel: car.fuel,
-          transmission: car.transmission,
-          reading: car.reading,
-          price: car.price,
-          images: imageUrls,
-          status: "Available",
-        });
+      const { error: insertError } =
+        await supabase
+          .from("cars")
+          .insert({
+            name: car.name,
+            year: Number(car.year),
+            fuel: car.fuel,
+            transmission: car.transmission,
+            reading: car.reading,
+            price: car.price,
+            images: imageUrls,
+            status: "Available",
+          });
 
-      if (insertError) throw insertError;
+      if (insertError) {
+        throw insertError;
+      }
 
       alert("Car and photos added successfully!");
 
-      // Clear form
       setCar({
         name: "",
         year: "",
@@ -133,7 +245,6 @@ function Admin() {
 
       setImages([]);
 
-      // Refresh car list
       fetchCars();
     } catch (error) {
       console.error("Error:", error);
@@ -143,9 +254,10 @@ function Admin() {
     }
   };
 
-  // -----------------------------
+  // =========================
   // DELETE CAR
-  // -----------------------------
+  // =========================
+
   const handleDeleteCar = async (id) => {
     const confirmed = window.confirm(
       "Are you sure you want to delete this car?"
@@ -159,7 +271,9 @@ function Admin() {
         .delete()
         .eq("id", id);
 
-      if (error) throw error;
+      if (error) {
+        throw error;
+      }
 
       alert("Car deleted successfully!");
 
@@ -170,68 +284,89 @@ function Admin() {
     }
   };
 
-  // -----------------------------
-  // OPEN EDIT FORM
-  // -----------------------------
+  // =========================
+  // EDIT CAR
+  // =========================
+
   const handleEditCar = (selectedCar) => {
+    console.log("Editing:", selectedCar);
+
     setEditingCar({
       ...selectedCar,
     });
-
-    // Scroll to edit form
-    setTimeout(() => {
-      document
-        .getElementById("edit-car-section")
-        ?.scrollIntoView({ behavior: "smooth" });
-    }, 100);
   };
 
-  // -----------------------------
-  // SAVE EDITED CAR
-  // -----------------------------
-  const handleSaveEdit = async (e) => {
-    e.preventDefault();
+  // =========================
+  // LOGOUT
+  // =========================
 
-    try {
-      const { error } = await supabase
-        .from("cars")
-        .update({
-          name: editingCar.name,
-          year: Number(editingCar.year),
-          fuel: editingCar.fuel,
-          transmission: editingCar.transmission,
-          reading: editingCar.reading,
-          price: editingCar.price,
-        })
-        .eq("id", editingCar.id);
+  const handleLogout = async () => {
+    const { error } = await supabase.auth.signOut();
 
-      if (error) throw error;
-
-      alert("Car updated successfully!");
-
-      setEditingCar(null);
-
-      fetchCars();
-    } catch (error) {
-      console.error("Update error:", error);
-      alert("Failed to update car: " + error.message);
+    if (error) {
+      alert("Logout failed: " + error.message);
+      return;
     }
+
+    setSession(null);
   };
+
+  // =========================
+  // AUTH CHECK
+  // =========================
+
+  if (checkingAuth) {
+    return (
+      <div className="admin-page">
+        <div className="admin-container">
+          <h1>NAYAK CARS</h1>
+          <p>Checking admin access...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!session) {
+    return <AdminLogin />;
+  }
+  <p style={{ color: "green", fontWeight: "bold" }}>
+  Logged in as: {session?.user?.email || "NO USER FOUND"}
+</p>
+
+  // =========================
+  // ADMIN DASHBOARD
+  // =========================
 
   return (
-    <div className="admin-page">
-      <div className="admin-container">
-        <h1>NAYAK CARS</h1>
-        <h2>Admin Panel</h2>
+  <div className="admin-page">
+    <div className="admin-container">
+
+      <p style={{ color: "green", fontWeight: "bold" }}>
+        Logged in as: {session?.user?.email || "NO USER FOUND"}
+      </p>
+
+      <div className="admin-header">
+          <div>
+            <h1>NAYAK CARS</h1>
+            <h2>Admin Panel</h2>
+          </div>
+
+          <button
+            type="button"
+            onClick={handleLogout}
+          >
+            LOGOUT
+          </button>
+        </div>
 
         {/* =========================
             ADD NEW CAR
         ========================= */}
 
-        <h2>Add New Car</h2>
-
         <form onSubmit={handleSubmit}>
+
           <label>Vehicle Name</label>
+
           <input
             type="text"
             name="name"
@@ -241,7 +376,10 @@ function Admin() {
             required
           />
 
-          <label>Registration / Manufacturing Year</label>
+          <label>
+            Registration / Manufacturing Year
+          </label>
+
           <input
             type="number"
             name="year"
@@ -252,41 +390,77 @@ function Admin() {
           />
 
           <label>Fuel Type</label>
+
           <select
-  name="fuel"
-  value={car.fuel}
-  onChange={handleChange}
-  required
->
-  <option value="">Select fuel</option>
+            name="fuel"
+            value={car.fuel}
+            onChange={handleChange}
+            required
+          >
+            <option value="">
+              Select fuel
+            </option>
 
-  <option value="Petrol">Petrol</option>
-  <option value="Diesel">Diesel</option>
+            <option value="Petrol">
+              Petrol
+            </option>
 
-  <option value="Petrol + CNG">Petrol + CNG</option>
-  <option value="Petrol + LPG">Petrol + LPG</option>
+            <option value="Diesel">
+              Diesel
+            </option>
 
-  <option value="Diesel + CNG">Diesel + CNG</option>
-  <option value="Diesel + LPG">Diesel + LPG</option>
+            <option value="Petrol + CNG">
+              Petrol + CNG
+            </option>
 
-  <option value="CNG">CNG</option>
-  <option value="LPG">LPG</option>
-  <option value="Electric">Electric</option>
-</select>
+            <option value="Petrol + LPG">
+              Petrol + LPG
+            </option>
+
+            <option value="Diesel + CNG">
+              Diesel + CNG
+            </option>
+
+            <option value="Diesel + LPG">
+              Diesel + LPG
+            </option>
+
+            <option value="CNG">
+              CNG
+            </option>
+
+            <option value="LPG">
+              LPG
+            </option>
+
+            <option value="Electric">
+              Electric
+            </option>
+          </select>
 
           <label>Transmission</label>
+
           <select
             name="transmission"
             value={car.transmission}
             onChange={handleChange}
             required
           >
-            <option value="">Select transmission</option>
-            <option value="Manual">Manual</option>
-            <option value="Automatic">Automatic</option>
+            <option value="">
+              Select transmission
+            </option>
+
+            <option value="Manual">
+              Manual
+            </option>
+
+            <option value="Automatic">
+              Automatic
+            </option>
           </select>
 
           <label>Car Reading</label>
+
           <input
             type="text"
             name="reading"
@@ -297,6 +471,7 @@ function Admin() {
           />
 
           <label>Price</label>
+
           <input
             type="text"
             name="price"
@@ -307,6 +482,7 @@ function Admin() {
           />
 
           <label>Car Photos</label>
+
           <input
             type="file"
             accept="image/*"
@@ -318,9 +494,15 @@ function Admin() {
             {images.length} image(s) selected
           </p>
 
-          <button type="submit" disabled={uploading}>
-            {uploading ? "UPLOADING..." : "ADD CAR"}
+          <button
+            type="submit"
+            disabled={uploading}
+          >
+            {uploading
+              ? "UPLOADING..."
+              : "ADD CAR"}
           </button>
+
         </form>
 
         {/* =========================
@@ -328,18 +510,70 @@ function Admin() {
         ========================= */}
 
         {editingCar && (
-          <div
-            id="edit-car-section"
-            className="edit-car-section"
-            style={{ marginTop: "30px" }}
-          >
+          <div className="edit-car-section">
+
             <h2>Edit Car</h2>
 
-            <form onSubmit={handleSaveEdit}>
-              <label>Vehicle Name</label>
+            <form
+              onSubmit={async (e) => {
+                e.preventDefault();
+
+                try {
+                  const { error } =
+                    await supabase
+                      .from("cars")
+                      .update({
+                        name: editingCar.name,
+                        year: Number(
+                          editingCar.year
+                        ),
+                        fuel: editingCar.fuel,
+                        transmission:
+                          editingCar.transmission,
+                        reading:
+                          editingCar.reading,
+                        price:
+                          editingCar.price,
+                      })
+                      .eq(
+                        "id",
+                        editingCar.id
+                      );
+
+                  if (error) {
+                    throw error;
+                  }
+
+                  alert(
+                    "Car updated successfully!"
+                  );
+
+                  setEditingCar(null);
+
+                  fetchCars();
+                } catch (error) {
+                  console.error(
+                    "Update error:",
+                    error
+                  );
+
+                  alert(
+                    "Failed to update car: " +
+                      error.message
+                  );
+                }
+              }}
+            >
+
+              <label>
+                Vehicle Name
+              </label>
+
               <input
                 type="text"
-                value={editingCar.name || ""}
+                value={
+                  editingCar.name || ""
+                }
                 onChange={(e) =>
                   setEditingCar({
                     ...editingCar,
@@ -350,9 +584,12 @@ function Admin() {
               />
 
               <label>Year</label>
+
               <input
                 type="number"
-                value={editingCar.year || ""}
+                value={
+                  editingCar.year || ""
+                }
                 onChange={(e) =>
                   setEditingCar({
                     ...editingCar,
@@ -363,75 +600,132 @@ function Admin() {
               />
 
               <label>Fuel</label>
+
               <select
-                value={editingCar.fuel || ""}
+                value={
+                  editingCar.fuel || ""
+                }
                 onChange={(e) =>
                   setEditingCar({
                     ...editingCar,
                     fuel: e.target.value,
                   })
                 }
-                required
               >
-                <option value="">Select fuel</option>
-                <option value="Petrol">Petrol</option>
-                <option value="Diesel">Diesel</option>
-                <option value="CNG">CNG</option>
-                <option value="Electric">Electric</option>
+                <option value="Petrol">
+                  Petrol
+                </option>
+
+                <option value="Diesel">
+                  Diesel
+                </option>
+
+                <option value="Petrol + CNG">
+                  Petrol + CNG
+                </option>
+
+                <option value="Petrol + LPG">
+                  Petrol + LPG
+                </option>
+
+                <option value="Diesel + CNG">
+                  Diesel + CNG
+                </option>
+
+                <option value="Diesel + LPG">
+                  Diesel + LPG
+                </option>
+
+                <option value="CNG">
+                  CNG
+                </option>
+
+                <option value="LPG">
+                  LPG
+                </option>
+
+                <option value="Electric">
+                  Electric
+                </option>
               </select>
 
-              <label>Transmission</label>
+              <label>
+                Transmission
+              </label>
+
               <select
-                value={editingCar.transmission || ""}
+                value={
+                  editingCar.transmission ||
+                  ""
+                }
                 onChange={(e) =>
                   setEditingCar({
                     ...editingCar,
-                    transmission: e.target.value,
+                    transmission:
+                      e.target.value,
                   })
                 }
-                required
               >
-                <option value="">Select transmission</option>
-                <option value="Manual">Manual</option>
-                <option value="Automatic">Automatic</option>
+                <option value="Manual">
+                  Manual
+                </option>
+
+                <option value="Automatic">
+                  Automatic
+                </option>
               </select>
 
-              <label>Car Reading</label>
+              <label>
+                Car Reading
+              </label>
+
               <input
                 type="text"
-                value={editingCar.reading || ""}
+                value={
+                  editingCar.reading || ""
+                }
                 onChange={(e) =>
                   setEditingCar({
                     ...editingCar,
-                    reading: e.target.value,
+                    reading:
+                      e.target.value,
                   })
                 }
               />
 
               <label>Price</label>
+
               <input
                 type="text"
-                value={editingCar.price || ""}
+                value={
+                  editingCar.price || ""
+                }
                 onChange={(e) =>
                   setEditingCar({
                     ...editingCar,
-                    price: e.target.value,
+                    price:
+                      e.target.value,
                   })
                 }
               />
 
               <div className="admin-car-buttons">
+
                 <button type="submit">
                   💾 SAVE CHANGES
                 </button>
 
                 <button
                   type="button"
-                  onClick={() => setEditingCar(null)}
+                  onClick={() =>
+                    setEditingCar(null)
+                  }
                 >
                   CANCEL
                 </button>
+
               </div>
+
             </form>
           </div>
         )}
@@ -440,88 +734,98 @@ function Admin() {
             EXISTING CARS
         ========================= */}
 
-        <div className="existing-cars" style={{ marginTop: "40px" }}>
+        <div className="existing-cars">
+
           <h2>Your Cars</h2>
 
           {loadingCars ? (
-            <p>Loading cars...</p>
+            <p>
+              Loading cars...
+            </p>
           ) : cars.length === 0 ? (
-            <p>No cars found.</p>
+            <p>
+              No cars found.
+            </p>
           ) : (
             cars.map((existingCar) => (
+
               <div
                 className="admin-car-card"
                 key={existingCar.id}
-                style={{
-                  border: "1px solid #ddd",
-                  padding: "15px",
-                  marginBottom: "15px",
-                }}
               >
+
                 {existingCar.images &&
-                  existingCar.images.length > 0 && (
+                  existingCar.images.length >
+                    0 && (
                     <img
-                      src={existingCar.images[0]}
-                      alt={existingCar.name}
+                      src={
+                        existingCar.images[0]
+                      }
+                      alt={
+                        existingCar.name
+                      }
                       className="admin-car-image"
-                      style={{
-                        width: "150px",
-                        maxWidth: "100%",
-                        marginBottom: "10px",
-                      }}
                     />
                   )}
 
                 <div className="admin-car-info">
-                  <h3>{existingCar.name}</h3>
+
+                  <h3>
+                    {existingCar.name}
+                  </h3>
 
                   <p>
-                    <strong>Year:</strong> {existingCar.year}
+                    <strong>
+                      Year:
+                    </strong>{" "}
+                    {existingCar.year}
                   </p>
 
                   <p>
-                    <strong>Fuel:</strong> {existingCar.fuel}
+                    <strong>
+                      Fuel:
+                    </strong>{" "}
+                    {existingCar.fuel}
                   </p>
 
                   <p>
-                    <strong>Transmission:</strong>{" "}
+                    <strong>
+                      Transmission:
+                    </strong>{" "}
                     {existingCar.transmission}
                   </p>
 
                   <p>
-                    <strong>Reading:</strong>{" "}
-                    {existingCar.reading}
+                    <strong>
+                      Photos:
+                    </strong>{" "}
+                    {existingCar.images?.length ||
+                      0}
                   </p>
 
                   <p>
-                    <strong>Price:</strong> {existingCar.price}
-                  </p>
-
-                  <p>
-                    <strong>Photos:</strong>{" "}
-                    {existingCar.images?.length || 0}
-                  </p>
-
-                  <p>
-                    <strong>Status:</strong>{" "}
-                    {existingCar.status || "Available"}
+                    <strong>
+                      Status:
+                    </strong>{" "}
+                    {existingCar.status ||
+                      "Available"}
                   </p>
 
                   <div className="admin-car-buttons">
+
                     <button
                       type="button"
-                      onClick={() => handleEditCar(existingCar)}
+                      onClick={() =>
+                        handleEditCar(
+                          existingCar
+                        )
+                      }
                     >
                       ✏️ EDIT
                     </button>
 
                     <button
                       type="button"
-                      onClick={() =>
-                        alert(
-                          "Photo management will be added next."
-                        )
-                      }
                     >
                       🖼️ PHOTOS
                     </button>
@@ -529,17 +833,23 @@ function Admin() {
                     <button
                       type="button"
                       onClick={() =>
-                        handleDeleteCar(existingCar.id)
+                        handleDeleteCar(
+                          existingCar.id
+                        )
                       }
                     >
                       🗑️ DELETE
                     </button>
+
                   </div>
+
                 </div>
               </div>
             ))
           )}
+
         </div>
+
       </div>
     </div>
   );
