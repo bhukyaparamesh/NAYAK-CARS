@@ -27,6 +27,7 @@ function CarGallery({ images, carName }) {
 
   return (
     <>
+      {/* CAR IMAGE */}
       <div className="car-gallery">
         <div
           className="main-image-wrapper"
@@ -40,10 +41,10 @@ function CarGallery({ images, carName }) {
 
             if (touchStartX === undefined) return;
 
-            const swipeDistance = touchEndX - touchStartX;
+            const distance = touchEndX - touchStartX;
 
-            if (Math.abs(swipeDistance) > 50) {
-              if (swipeDistance < 0) {
+            if (Math.abs(distance) > 50) {
+              if (distance < 0) {
                 nextImage();
               } else {
                 previousImage();
@@ -62,6 +63,7 @@ function CarGallery({ images, carName }) {
           </div>
         </div>
 
+        {/* THUMBNAILS */}
         {images.length > 1 && (
           <div className="car-thumbnails">
             {images.map((image, index) => (
@@ -79,39 +81,58 @@ function CarGallery({ images, carName }) {
         )}
       </div>
 
+      {/* FULL SCREEN */}
       {fullScreen && (
-        <div className="fullscreen-gallery-overlay">
+        <div
+          className="fullscreen-gallery-overlay"
+          onClick={() => setFullScreen(false)}
+        >
+          {/* CLOSE */}
           <button
             className="close-gallery"
-            onClick={() => setFullScreen(false)}
+            onClick={(e) => {
+              e.stopPropagation();
+              setFullScreen(false);
+            }}
           >
             ✕
           </button>
 
+          {/* LEFT */}
           {images.length > 1 && (
             <button
               className="gallery-arrow left"
-              onClick={previousImage}
+              onClick={(e) => {
+                e.stopPropagation();
+                previousImage();
+              }}
             >
               ‹
             </button>
           )}
 
+          {/* FULL IMAGE */}
           <img
             src={images[selectedImage]}
             alt={carName}
             className="fullscreen-image"
+            onClick={(e) => e.stopPropagation()}
           />
 
+          {/* RIGHT */}
           {images.length > 1 && (
             <button
               className="gallery-arrow right"
-              onClick={nextImage}
+              onClick={(e) => {
+                e.stopPropagation();
+                nextImage();
+              }}
             >
               ›
             </button>
           )}
 
+          {/* COUNTER */}
           <div className="image-counter">
             {selectedImage + 1} / {images.length}
           </div>
