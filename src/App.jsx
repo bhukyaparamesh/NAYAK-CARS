@@ -230,33 +230,78 @@ function App() {
       <main>
         {/* HERO */}
 
-        <section className="hero" id="home">
-          <div className="hero-content">
-            <p className="small-title">
-              WELCOME TO
-            </p>
+        {/* HERO */}
+<section className="hero" id="home">
 
-            <h1>
-              NAYAK CARS
-            </h1>
+  <div className="hero-car-line"></div>
 
-            <p>
-              Find quality pre-owned cars at the right price.
-            </p>
+  <div className="hero-side-left"></div>
+  <div className="hero-side-right"></div>
 
-            <button
-              onClick={() =>
-                document
-                  .getElementById("cars")
-                  .scrollIntoView({
-                    behavior: "smooth",
-                  })
-              }
-            >
-              VIEW CARS
-            </button>
-          </div>
-        </section>
+  <div className="hero-content">
+
+    <p className="hero-welcome">
+      || JAI SEVALAL || &nbsp; | &nbsp; || JAI TULJA BHAVANI ||
+    </p>
+
+    <div className="hero-curve"></div>
+
+    <h1>
+      <span>NAYAK CARS</span>
+      <strong>ON YOUR SCREEN</strong>
+    </h1>
+
+    <div className="hero-divider">
+      <span></span>
+      <b>◆</b>
+      <span></span>
+    </div>
+
+    <p className="hero-description">
+      Quality used cars, carefully selected and fairly priced.
+      <br />
+      Browse from home, then come take the wheel.
+    </p>
+
+    <div className="hero-trust">
+      <i></i>
+      YOUR TRUST, OUR PROMISE
+      <i></i>
+    </div>
+
+    <button
+      className="hero-view-button"
+      onClick={() =>
+        document
+          .getElementById("cars")
+          .scrollIntoView({
+            behavior: "smooth",
+          })
+      }
+    >
+      VIEW CARS
+    </button>
+
+  </div>
+
+  {/* SIDE CAR DESIGN */}
+  <div className="hero-car">
+
+    <div className="car-roof"></div>
+
+    <div className="car-window front"></div>
+    <div className="car-window back"></div>
+
+    <div className="car-body-line"></div>
+
+    <div className="car-wheel wheel-left"></div>
+    <div className="car-wheel wheel-right"></div>
+
+    <div className="car-light"></div>
+
+  </div>
+
+</section>
 
         {/* AVAILABLE CARS */}
 
