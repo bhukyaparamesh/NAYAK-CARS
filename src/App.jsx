@@ -624,6 +624,53 @@ function App() {
             </div>
           )}
         </section>
+
+        {/* CONTACT & LOCATION */}
+        <section className="contact-section" id="contact">
+          <div className="contact-container">
+
+            <div className="section-heading">
+              <p>VISIT US</p>
+              <h2>CONTACT NAYAK CARS</h2>
+            </div>
+
+            <div className="contact-info">
+
+              <div className="contact-box">
+                <div className="contact-icon">📍</div>
+                <h3>OUR LOCATION</h3>
+                <p>
+                  GK Function Hall Opposite, Peddhur
+                  <br />
+                  Sircilla–Kamareddy Road – 505301
+                </p>
+              </div>
+
+              <div className="contact-box">
+                <div className="contact-icon">📞</div>
+                <h3>CONTACT US</h3>
+                <p>
+                  <a href="tel:7729852502">
+                    7729852502
+                  </a>
+                  <br />
+                  <a href="tel:9177452502">
+                    9177452502
+                  </a>
+                </p>
+              </div>
+
+            </div>
+
+            <div className="contact-bottom">
+  <strong>Jai Sevalal Maharaj!</strong>
+  <br />
+  Seva, Satya, and Unity are the path to a better life
+</div>
+
+          </div>
+        </section>
+
       </main>
     </div>
   );
